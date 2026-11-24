@@ -65,7 +65,7 @@ jobs:
             echo "::warning::DNS could not resolve '$CLEAN_SERVER'. If this fails, replace '$CLEAN_SERVER' with your numeric Hostinger FTP IP (e.g., 185.xxx.xxx.xxx or 31.xxx.xxx.xxx) in GitHub Secrets."
           fi
 
-      - name: Deploy to Hostinger (FTP)
+      - name: Deploy to Hostinger (FTPS)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ env.CLEAN_FTP_SERVER }}
@@ -73,4 +73,8 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD || secrets.HOSTINGER_FTP_PASSWORD }}
           server-dir: ${{ secrets.FTP_SERVER_DIR || 'public_html/' }}
           local-dir: ./frontend/dist/
+          protocol: ${{ secrets.FTP_PROTOCOL || 'ftps' }}
+          port: 21
+          security: loose
+          timeout: 60000
           dangerous-clean-slate: false
