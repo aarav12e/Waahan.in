@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-deploy:
-    name: Build & Deploy via FTP
+    name: Build & Deploy to Hostinger
     runs-on: ubuntu-latest
 
     steps:
@@ -58,23 +58,26 @@ jobs:
           echo "Target FTP Server hostname/IP: $CLEAN_SERVER"
           echo "CLEAN_FTP_SERVER=$CLEAN_SERVER" >> $GITHUB_ENV
 
-          # Diagnostic DNS check
-          if getent hosts "$CLEAN_SERVER" > /dev/null 2>&1; then
-            echo "Server address '$CLEAN_SERVER' successfully resolved by DNS."
-          else
-            echo "::warning::DNS could not resolve '$CLEAN_SERVER'. If this fails, replace '$CLEAN_SERVER' with your numeric Hostinger FTP IP (e.g., 185.xxx.xxx.xxx or 31.xxx.xxx.xxx) in GitHub Secrets."
-          fi
+      - name: Install LFTP
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
 
-      - name: Deploy to Hostinger (FTPS)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ env.CLEAN_FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME || secrets.FTP_USER || secrets.HOSTINGER_FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD || secrets.HOSTINGER_FTP_PASSWORD }}
-          server-dir: ${{ secrets.FTP_SERVER_DIR || 'public_html/' }}
-          local-dir: ./frontend/dist/
-          protocol: ${{ secrets.FTP_PROTOCOL || 'ftps' }}
-          port: 21
-          security: loose
-          timeout: 60000
-          dangerous-clean-slate: false
+      - name: Deploy to Hostinger (LFTP Mirror)
+        env:
+          FTP_SERVER: ${{ env.CLEAN_FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME || secrets.FTP_USER || secrets.HOSTINGER_FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD || secrets.HOSTINGER_FTP_PASSWORD }}
+          TARGET_DIR: ${{ secrets.FTP_SERVER_DIR || 'public_html/' }}
+        run: |
+          echo "Starting LFTP upload to $FTP_SERVER ..."
+          lftp -e "
+            set ssl:verify-certificate no;
+            set ftp:ssl-allow yes;
+            set ftp:ssl-force false;
+            set ftp:passive-mode yes;
+            set net:timeout 60;
+            set net:max-retries 3;
+            set net:reconnect-interval-base 3;
+            mirror --reverse --verbose ./frontend/dist/ $TARGET_DIR;
+            bye
+          " -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER"
+          echo "LFTP deployment completed successfully!"
