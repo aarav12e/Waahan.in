@@ -80,7 +80,8 @@ jobs:
           open ftp://$FTP_HOST
           user $FTP_USER $FTP_PASS
           ls
-          mirror --reverse --verbose --no-perms ./frontend/dist/ $TARGET_DIR
+          rm -rf public_html/
+          mirror --reverse --verbose --no-perms ./frontend/dist/ ./
           bye
           EOF
           echo "LFTP deployment completed successfully!"
