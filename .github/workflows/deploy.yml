@@ -63,21 +63,24 @@ jobs:
 
       - name: Deploy to Hostinger (LFTP Mirror)
         env:
-          FTP_SERVER: ${{ env.CLEAN_FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME || secrets.FTP_USER || secrets.HOSTINGER_FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD || secrets.HOSTINGER_FTP_PASSWORD }}
+          FTP_HOST: ${{ env.CLEAN_FTP_SERVER }}
+          FTP_USER: ${{ secrets.FTP_USERNAME || secrets.FTP_USER || secrets.HOSTINGER_FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.FTP_PASSWORD || secrets.HOSTINGER_FTP_PASSWORD }}
           TARGET_DIR: ${{ secrets.FTP_SERVER_DIR || 'public_html/' }}
         run: |
-          echo "Starting LFTP upload to $FTP_SERVER ..."
-          lftp -e "
-            set ssl:verify-certificate no;
-            set ftp:ssl-allow yes;
-            set ftp:ssl-force false;
-            set ftp:passive-mode yes;
-            set net:timeout 60;
-            set net:max-retries 3;
-            set net:reconnect-interval-base 3;
-            mirror --reverse --verbose ./frontend/dist/ $TARGET_DIR;
-            bye
-          " -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER"
+          echo "Starting LFTP upload to $FTP_HOST ..."
+          lftp <<EOF
+          set ssl:verify-certificate no
+          set ftp:ssl-allow yes
+          set ftp:ssl-force false
+          set ftp:passive-mode yes
+          set net:timeout 60
+          set net:max-retries 5
+          set net:reconnect-interval-base 5
+          open ftp://$FTP_HOST
+          user $FTP_USER $FTP_PASS
+          ls
+          mirror --reverse --verbose --no-perms ./frontend/dist/ $TARGET_DIR
+          bye
+          EOF
           echo "LFTP deployment completed successfully!"
