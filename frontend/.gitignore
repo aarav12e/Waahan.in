@@ -1,0 +1,21 @@
+# Node modules
+node_modules/
+*/node_modules/
+
+# Build outputs
+dist/
+dist-ssr/
+*.local
+
+# Tool & Vite caches
+.vite/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db

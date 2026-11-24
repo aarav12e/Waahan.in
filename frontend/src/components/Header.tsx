@@ -1,49 +1,60 @@
-import { Moon, Sun } from "lucide-react";
-import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useLanguage } from "../context/LanguageContext";
 
-function WaahanMark() {
+function WaahanLogo() {
   return (
-    <svg className="brand-mark" viewBox="0 0 42 42" role="img" aria-label="Waahan">
-      <path d="M21 2.5C11.8 2.5 5.2 9.7 5.2 18.5C5.2 29.1 21 38.8 21 38.8S36.8 29.1 36.8 18.5C36.8 9.7 30.2 2.5 21 2.5Z" fill="currentColor" />
-      <circle cx="21" cy="18.5" r="8" fill="#0B0B0F" />
-      <circle cx="21" cy="18.5" r="3.5" fill="#FFC400" />
-    </svg>
+    <div className="brand-lockup">
+      <span className="brand-logo-text">waahan</span>
+      <span className="brand-dot" />
+    </div>
   );
 }
 
 export function Header() {
-  const [dark, setDark] = useState(true);
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = dark ? "dark" : "light";
-    document.querySelector('meta[name="theme-color"]')?.setAttribute(
-      "content",
-      dark ? "#0B0B0F" : "#F7F7F4",
-    );
-  }, [dark]);
+  const { lang, setLang, t } = useLanguage();
 
   return (
-    <motion.header
-      className="site-header"
-      initial={{ opacity: 0, y: -12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: [0.2, 0, 0, 1] }}
-    >
+    <header className="minimal-header">
       <div className="header-inner">
-        <div className="wordmark" aria-label="Waahan">
-          <WaahanMark />
-          <span>waahan</span>
+        {/* Brand Wordmark */}
+        <a href="#" className="brand-link" aria-label="Waahan Home">
+          <WaahanLogo />
+        </a>
+
+        {/* Center Nav Links */}
+        <nav className="center-nav" aria-label="Primary Navigation">
+          <a href="#services" className="nav-item">{t.nav.services}</a>
+          <a href="#about" className="nav-item">{t.nav.about}</a>
+          <a href="#contact" className="nav-item">{t.nav.contact}</a>
+        </nav>
+
+        {/* Right Actions */}
+        <div className="header-right">
+          {/* Status Badge */}
+          <div className="status-badge" aria-label="Status: Coming Soon">
+            <span className="status-live-dot" />
+            <span className="status-label">{t.nav.comingSoonBadge}</span>
+          </div>
+
+          {/* Language Switcher */}
+          <div className="minimal-lang-switcher" role="group" aria-label="Language Switcher">
+            <button
+              type="button"
+              className={`lang-choice ${lang === "en" ? "active" : ""}`}
+              onClick={() => setLang("en")}
+            >
+              EN
+            </button>
+            <span className="lang-sep">/</span>
+            <button
+              type="button"
+              className={`lang-choice ${lang === "hi" ? "active" : ""}`}
+              onClick={() => setLang("hi")}
+            >
+              हिं
+            </button>
+          </div>
         </div>
-        <button
-          className="theme-toggle"
-          type="button"
-          onClick={() => setDark((value) => !value)}
-          aria-label={`Switch to ${dark ? "light" : "dark"} mode`}
-        >
-          {dark ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
-        </button>
       </div>
-    </motion.header>
+    </header>
   );
 }
