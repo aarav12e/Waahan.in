@@ -30,10 +30,14 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-      - name: Verify Required Secrets
+      - name: Verify and Sanitize Secrets
         run: |
+          RAW_SERVER="${{ secrets.FTP_SERVER || secrets.FTP_HOST || secrets.HOSTINGER_FTP_SERVER || secrets.HOSTINGER_FTP_HOST }}"
+          # Automatically strip protocols (ftp://, https://, http://), trailing paths, and port numbers
+          CLEAN_SERVER=$(echo "$RAW_SERVER" | sed -E 's|^[a-zA-Z]+://||' | sed -E 's|/.*$||' | sed -E 's|:[0-9]+$||' | xargs)
+          
           MISSING=0
-          if [ -z "${{ secrets.FTP_SERVER || secrets.FTP_HOST || secrets.HOSTINGER_FTP_SERVER || secrets.HOSTINGER_FTP_HOST }}" ]; then
+          if [ -z "$CLEAN_SERVER" ]; then
             echo "::error::Secret 'FTP_SERVER' (or 'FTP_HOST') is missing! Go to https://github.com/aarav12e/Waahan.in/settings/secrets/actions and add FTP_SERVER."
             MISSING=1
           fi
@@ -45,16 +49,26 @@ jobs:
             echo "::error::Secret 'FTP_PASSWORD' is missing! Go to https://github.com/aarav12e/Waahan.in/settings/secrets/actions and add FTP_PASSWORD."
             MISSING=1
           fi
+
           if [ $MISSING -eq 1 ]; then
             echo "Stopping deployment due to missing GitHub Secrets."
             exit 1
           fi
-          echo "FTP configuration secrets verified."
+
+          echo "Target FTP Server hostname/IP: $CLEAN_SERVER"
+          echo "CLEAN_FTP_SERVER=$CLEAN_SERVER" >> $GITHUB_ENV
+
+          # Diagnostic DNS check
+          if getent hosts "$CLEAN_SERVER" > /dev/null 2>&1; then
+            echo "Server address '$CLEAN_SERVER' successfully resolved by DNS."
+          else
+            echo "::warning::DNS could not resolve '$CLEAN_SERVER'. If this fails, replace '$CLEAN_SERVER' with your numeric Hostinger FTP IP (e.g., 185.xxx.xxx.xxx or 31.xxx.xxx.xxx) in GitHub Secrets."
+          fi
 
       - name: Deploy to Hostinger (FTP)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER || secrets.FTP_HOST || secrets.HOSTINGER_FTP_SERVER || secrets.HOSTINGER_FTP_HOST }}
+          server: ${{ env.CLEAN_FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME || secrets.FTP_USER || secrets.HOSTINGER_FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD || secrets.HOSTINGER_FTP_PASSWORD }}
           server-dir: ${{ secrets.FTP_SERVER_DIR || 'public_html/' }}
